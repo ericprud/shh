@@ -29,7 +29,7 @@ h2 { margin: 0; }
 #rpanrResize {
   flex-grow: 0;
   flex-shrink: 0;
-  background: #1b1b51;
+  background: #8b8bc1;
   width: 2rem;
   cursor: col-resize;
   margin: 0 0 0 auto;

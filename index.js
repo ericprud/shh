@@ -25,10 +25,35 @@ const yashe = YASHE(document.getElementById('shexc'), {
   //Options
 });
 
-document.getElementById("l2r").addEventListener('click', copyL2R);
+document.getElementById("l2r").addEventListener('click', evt => {
+  copyL2R('  ');
+  return false;
+});
+document.addEventListener('keydown', evt => {
+  if (evt.ctrlKey && evt.altKey && evt.code === 'ArrowRight') {
+    copyL2R('  ');
+    return false;
+  }
+  return true;
+});
 
-const INDENT = '  ';
-function copyL2R(event) {
+document.getElementById("r2l").addEventListener('click', evt => {
+  copyR2L('  ');
+  return false;
+});
+document.addEventListener('keydown', evt => {
+  if (evt.ctrlKey && evt.altKey && evt.code === 'ArrowLeft') {
+    copyR2L('  ');
+    return false;
+  }
+  return true;
+});
+
+function copyR2L (indent) {
+  alert("not implemented");
+}
+
+function copyL2R (indent) {
   let lead = '';
   const shexc = yashe.getValue();
   const shexParser = ShExWebApp.Parser.construct();
@@ -91,10 +116,10 @@ function copyL2R(event) {
   }
   
   function ind (lead) {
-    return lead + INDENT
+    return lead + indent
   }
 
   function out (lead) {
-    return lead.substr(0, lead.length - INDENT.length);
+    return lead.substr(0, lead.length - indent.length);
   }
 }
