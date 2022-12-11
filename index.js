@@ -1,3 +1,5 @@
+Ns_shacl = 'http://www.w3.org/ns/shacl#';
+
 let ismdwn = 0
 rpanrResize.addEventListener('mousedown', mD)
 
@@ -55,33 +57,23 @@ function copyR2L (indent) {
 
 function copyL2R (indent) {
   let lead = '';
+  const url = "" + window.location;
   const shexc = yashe.getValue();
-  const shexParser = ShExWebApp.Parser.construct();
+  const shexParser = ShExWebApp.Parser.construct(url, null, {index:true});
   const shexj = shexParser.parse(shexc);
-  shacl.value = `PREFIX sh: <http://www.w3.org/ns/shacl#>\n\n `;
+  const prefixes = shexj._prefixes;
+  const base = shexj._base;
+  prefixes['shacl'] = Ns_shacl;
+
+  shacl.value = ``;
+  renderPrefixes(prefixes);
+  shacl.value += `\n`;
+
   if (shexj.shapes) {
     shexj.shapes.forEach(decl => {
       if (decl.shapeExpr.type === 'Shape') {
-        shacl.value += `${lead}${ttl(decl.id)} a sh:NodeShape\n`;
-        // lead = ind(lead);
-        const sh = decl.shapeExpr;
-        const valueExpr = sh.expression;
-        if (!valueExpr) {
-          shacl.value += `${lead}# ${decl.id} is an empty shape\n`;
-        } else if (valueExpr.type === 'TripleConstraint') {
-          renderTC(valueExpr, ind(lead));
-        } else if (valueExpr.type === 'EachOf') {
-          valueExpr.expressions.forEach((conjunct, ord) => {
-            if (conjunct.type === 'TripleConstraint') {
-              renderTC(conjunct, ind(lead));
-            } else {
-              shacl.value += `${lead}# EachOf[${ord}] is not a TripleConstraint\n`;
-            }
-          });
-        } else {
-          shacl.value += `${lead}# ${decl.id} doesn't have an EachOf or TC\n`;
-        }
-        // lead = out(lead);
+        shacl.value += `${lead}${iri(decl.id)}`;
+        renderShape(lead, decl.shapeExpr);
         shacl.value += `${lead}.\n\n`;
       } else {
         shacl.value += `${lead}# ${decl.id} is not a simple Shape\n`;
@@ -91,27 +83,66 @@ function copyL2R (indent) {
     shacl.value += `${lead}# no shapes declared in ShExC\n`;
   }
 
+  function renderPrefixes (prefixes) {
+    for (let [prefix, ns] of Object.entries(prefixes)) {
+      shacl.value += `PREFIX ${prefix}: <${ns}>\n`;
+    }
+  }
+
+  function renderShape (lead, sh) {
+    shacl.value += ` a ${iri(Ns_shacl + "NodeShape")}\n`;
+    // lead = ind(lead);
+    const valueExpr = sh.expression;
+    if (!valueExpr) {
+      shacl.value += `${lead}# ${decl.id} is an empty shape\n`;
+    } else {
+      renderTripleExpr(lead, valueExpr);
+    }
+    // lead = out(lead);
+  }
+
+  function renderTripleExpr (lead, tripleExpr) {
+    if (tripleExpr.type === 'TripleConstraint') {
+      renderTC(tripleExpr, ind(lead));
+    } else if (tripleExpr.type === 'EachOf') {
+      tripleExpr.expressions.forEach((conjunct, ord) => {
+        if (conjunct.type === 'TripleConstraint') {
+          renderTC(conjunct, ind(lead));
+        } else {
+          shacl.value += `${lead}# EachOf[${ord}] is not a TripleConstraint\n`;
+        }
+      });
+    } else {
+      shacl.value += `${lead}# can only convert EachOfs or TripleConstraints\n`;
+    }
+  }
+
   function renderTC (tc, lead) {
-    shacl.value += `${lead}sh:property [\n`;
+    shacl.value += `${lead}${iri(Ns_shacl + "property")} [\n`;
     lead = ind(lead);
-    shacl.value += `${lead}sh:path ${ttl(tc.predicate)} ;\n`;
+    shacl.value += `${lead}${iri(Ns_shacl + "path")} ${iri(tc.predicate)} ;\n`;
     if ('min' in tc) {
       if (tc.min !== 0)
-        shacl.value += `${lead}sh:minCount ${tc.min} ;\n`;
+        shacl.value += `${lead}${iri(Ns_shacl + "minCount")} ${tc.min} ;\n`;
     } else {
-      shacl.value += `${lead}sh:minCount 1 ;\n`;
+      shacl.value += `${lead}${iri(Ns_shacl + "minCount")} 1 ;\n`;
     }
     if ('max' in tc) {
       if (tc.max !== -1)
-        shacl.value += `${lead}sh:maxCount ${tc.max} ;\n`;
+        shacl.value += `${lead}${iri(Ns_shacl + "maxCount")} ${tc.max} ;\n`;
     } else {
-      shacl.value += `${lead}sh:maxCount 1 ;\n`;
+      shacl.value += `${lead}${iri(Ns_shacl + "maxCount")} 1 ;\n`;
     }
     lead = out(lead);
     shacl.value += `${lead}] ;\n`;
   }
 
-  function ttl (i) {
+  function iri (i) {
+    for (let [prefix, ns] of Object.entries(prefixes)) {
+      if (i.startsWith(ns)) {
+        return prefix + ':' + i.substr(ns.length);
+      }
+    }
     return `<${i}>`;
   }
   
