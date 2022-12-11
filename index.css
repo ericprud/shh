@@ -1,11 +1,16 @@
-div {
+#outer, #shexPanel, #shaclPanel {
   display: flex;
   border: 1px black solid;
   width: 100%;
-  height: 200px;
+  height: 100%;
+  /* height: -webkit-fill-available; */
+  /* height: 200px; */
 }
 
-/* #showcase { display: block; } */
+h2 { margin: 0; }
+#shacl { width: 100%; }
+
+#showcase { display: block; }
 
 #shexPanel {
   flex-grow: 1;

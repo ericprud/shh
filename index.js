@@ -1,5 +1,3 @@
-debugger
-
 let ismdwn = 0
 rpanrResize.addEventListener('mousedown', mD)
 
@@ -16,11 +14,14 @@ function mV(event) {
     end()
   }
 }
+
 const end = (e) => {
   ismdwn = 0
   document.body.removeEventListener('mouseup', end)
   rpanrResize.removeEventListener('mousemove', mV)
 }
-// var yashe = YASHE(document.getElementById('showcase'), {
-//   //Options
-// });
+
+var yashe = YASHE(document.getElementById('shexc'), {
+  //Options
+});
+
