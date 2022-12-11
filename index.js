@@ -21,3 +21,6 @@ const end = (e) => {
   document.body.removeEventListener('mouseup', end)
   rpanrResize.removeEventListener('mousemove', mV)
 }
+// var yashe = YASHE(document.getElementById('showcase'), {
+//   //Options
+// });
