@@ -1,24 +1,26 @@
-#outer, #shexPanel, #shaclPanel {
+#outer, .panel {
   display: flex;
   border: 1px black solid;
   width: 100%;
   height: 100%;
-  /* height: -webkit-fill-available; */
-  /* height: 200px; */
+}
+
+.panel > div {
+    display: block;
+    width: 100%;
 }
 
 h2 { margin: 0; }
-#shacl { width: 100%; }
 
-#showcase { display: block; }
+textarea { width: 100%; height: 100%; }
 
-#shexPanel {
+.panel.left {
   flex-grow: 1;
   flex-shrink: 0;
   flex-basis: 50%; /* initial status */
 }
 
-#shaclPanel {
+.panel.right {
   flex-grow: 0;
   flex-shrink: 1;
   overflow-x: auto;

@@ -9,7 +9,7 @@ function mD(event) {
 
 function mV(event) {
   if (ismdwn === 1) {
-    shexPanel.style.flexBasis = event.clientX + "px"
+    leftPanel.style.flexBasis = event.clientX + "px"
   } else {
     end()
   }
@@ -25,3 +25,8 @@ var yashe = YASHE(document.getElementById('shexc'), {
   //Options
 });
 
+document.getElementById("l2r").addEventListener('click', foo);
+
+function foo(event) {
+  document.getElementById("shacl").textContent = yashe.getValue();
+}
