@@ -56,7 +56,7 @@ function copyR2L (indent) {
 }
 
 function copyL2R (indent) {
-  let lead = '';
+  const lead = '';
   const url = "" + window.location;
   const shexc = yashe.getValue();
   const shexParser = ShExWebApp.Parser.construct(url, null, {index:true});
@@ -66,14 +66,14 @@ function copyL2R (indent) {
   prefixes['shacl'] = Ns_shacl;
 
   shacl.value = ``;
-  renderPrefixes(prefixes);
+  renderPrefixes(lead, prefixes);
   shacl.value += `\n`;
 
   if (shexj.shapes) {
     shexj.shapes.forEach(decl => {
       if (decl.shapeExpr.type === 'Shape') {
         shacl.value += `${lead}${iri(decl.id)}`;
-        renderShape(lead, decl.shapeExpr);
+        renderShapeExpression(lead, decl.shapeExpr);
         shacl.value += `${lead}.\n\n`;
       } else {
         shacl.value += `${lead}# ${decl.id} is not a simple Shape\n`;
@@ -83,56 +83,75 @@ function copyL2R (indent) {
     shacl.value += `${lead}# no shapes declared in ShExC\n`;
   }
 
-  function renderPrefixes (prefixes) {
+  function renderPrefixes (lead, prefixes) {
     for (let [prefix, ns] of Object.entries(prefixes)) {
-      shacl.value += `PREFIX ${prefix}: <${ns}>\n`;
+      shacl.value += `${lead}PREFIX ${prefix}: <${ns}>\n`;
     }
+  }
+
+  function renderShapeExpression (lead, shapeExpr) {
+    switch (shapeExpr.type) {
+    case 'Shape': renderShape(lead, shapeExpr); break;
+    case 'NodeConstraint': renderNodeConstraint(lead, shapeExpr); break;
+    default: shacl.value += `${lead}# unknown ShapeExpression type ${shapeExpr.type}\n`
+    }
+  }
+
+  function renderNodeConstraint (lead, sh) {
+    shacl.value += ` a ${iri(Ns_shacl + "NodeConstraint")}\n`;
   }
 
   function renderShape (lead, sh) {
-    shacl.value += ` a ${iri(Ns_shacl + "NodeShape")}\n`;
-    // lead = ind(lead);
+    shacl.value += ` a ${iri(Ns_shacl + "NodeShape")} ;\n`;
+    lead = ind(lead);
     const valueExpr = sh.expression;
     if (!valueExpr) {
-      shacl.value += `${lead}# ${decl.id} is an empty shape\n`;
+      shacl.value += `${lead}# empty shape\n`;
     } else {
-      renderTripleExpr(lead, valueExpr);
+      renderTripleExpression(lead, valueExpr);
     }
-    // lead = out(lead);
+    lead = out(lead);
   }
 
-  function renderTripleExpr (lead, tripleExpr) {
-    if (tripleExpr.type === 'TripleConstraint') {
-      renderTC(tripleExpr, ind(lead));
-    } else if (tripleExpr.type === 'EachOf') {
+  function renderTripleExpression (lead, tripleExpr) {
+    switch (tripleExpr.type) {
+    case 'TripleConstraint': renderTripleConstraint(lead, tripleExpr); break;
+    case 'EachOf':
       tripleExpr.expressions.forEach((conjunct, ord) => {
         if (conjunct.type === 'TripleConstraint') {
-          renderTC(conjunct, ind(lead));
+          renderTripleConstraint(lead, conjunct);
         } else {
           shacl.value += `${lead}# EachOf[${ord}] is not a TripleConstraint\n`;
         }
       });
-    } else {
-      shacl.value += `${lead}# can only convert EachOfs or TripleConstraints\n`;
+      break;
+    default: shacl.value += `${lead}# unknown TripleExpression type: ${tripleExpr.type}\n`;
     }
   }
 
-  function renderTC (tc, lead) {
+  function renderTripleConstraint (lead, tc) {
     shacl.value += `${lead}${iri(Ns_shacl + "property")} [\n`;
     lead = ind(lead);
     shacl.value += `${lead}${iri(Ns_shacl + "path")} ${iri(tc.predicate)} ;\n`;
+
     if ('min' in tc) {
       if (tc.min !== 0)
         shacl.value += `${lead}${iri(Ns_shacl + "minCount")} ${tc.min} ;\n`;
     } else {
       shacl.value += `${lead}${iri(Ns_shacl + "minCount")} 1 ;\n`;
     }
+
     if ('max' in tc) {
       if (tc.max !== -1)
         shacl.value += `${lead}${iri(Ns_shacl + "maxCount")} ${tc.max} ;\n`;
     } else {
       shacl.value += `${lead}${iri(Ns_shacl + "maxCount")} 1 ;\n`;
     }
+
+    if ('valueExpr' in tc) {
+      renderShapeExpression(lead, tc.valueExpr);
+    }
+
     lead = out(lead);
     shacl.value += `${lead}] ;\n`;
   }
@@ -145,12 +164,8 @@ function copyL2R (indent) {
     }
     return `<${i}>`;
   }
-  
-  function ind (lead) {
-    return lead + indent
-  }
 
-  function out (lead) {
-    return lead.substr(0, lead.length - indent.length);
-  }
+  // Indentation
+  function ind (lead) { return lead + indent }
+  function out (lead) { return lead.substr(0, lead.length - indent.length); }
 }
