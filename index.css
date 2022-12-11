@@ -1,0 +1,32 @@
+div {
+  display: flex;
+  border: 1px black solid;
+  width: 100%;
+  height: 200px;
+}
+
+#shexPanel {
+  flex-grow: 1;
+  flex-shrink: 0;
+  flex-basis: 50%; /* initial status */
+}
+
+#shaclPanel {
+  flex-grow: 0;
+  flex-shrink: 1;
+  overflow-x: auto;
+}
+
+#rpanrResize {
+  flex-grow: 0;
+  flex-shrink: 0;
+  background: #1b1b51;
+  width: 2rem;
+  cursor: col-resize;
+  margin: 0 0 0 auto;
+}
+
+#buttons {
+    width: 2em;
+    height: 2ex;
+}
