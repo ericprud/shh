@@ -97,8 +97,49 @@ function copyL2R (indent) {
     }
   }
 
-  function renderNodeConstraint (lead, sh) {
-    shacl.value += ` a ${iri(Ns_shacl + "NodeConstraint")}\n`;
+  function renderNodeConstraint (lead, nc) {
+    if ('nodeKind' in nc)
+      shacl.value += `${lead}${iri(Ns_shacl + "nodeKind")} ${iri(Ns_shacl + nc.nodeKind.toUpperCase())} ;\n`;
+    if ('datatype' in nc)
+      shacl.value += `${lead}${iri(Ns_shacl + "datatype")} ${iri(nc.datatype)} ;\n`;
+    if ('values' in nc) {
+      const values = nc.values.map(v => {
+        if (typeof v === 'string') return iri(v);
+        const langOrDt = 'language' in v
+              ? `@${v.language}`
+              : 'datatype' in v
+              ? `^^${iri(v.datatype)}`
+              : '';
+        return `"${v.value}"${langOrDt}`;
+      });
+      shacl.value += `${lead}${iri(Ns_shacl + "in")} (${values.join(' ')}) ;\n`;
+    }
+    if ('pattern' in nc) {
+      shacl.value += `${lead}${iri(Ns_shacl + "pattern")} "${nc.pattern}" ;\n`;
+      if ('flags' in nc) {
+        shacl.value += `${lead}${iri(Ns_shacl + "flags")} "${nc.flags}" ;\n`;
+      }
+    }
+    const x2cl = {
+      length: 'length',
+      minlength: 'minLength',
+      maxlength: 'maxLength',
+      mininclusive: 'minInclusive',
+      maxinclusive: 'maxInclusive',
+      minexclusive: 'minExclusive',
+      maxexclusive: 'maxExclusive',
+    };
+    for (let x in x2cl) {
+      if (x in nc) {
+        shacl.value += `${lead}${iri(Ns_shacl + x2cl[x])} "${nc[x]}" ;\n`;
+      }
+    }
+    if ('totaldigits' in nc) {
+      shacl.value += `${lead}${iri(Ns_shacl + "pattern")} "[0-9]{0,${nc.totaldigits}}\." ;\n`;
+    }
+    if ('fractiondigits' in nc) {
+      shacl.value += `${lead}${iri(Ns_shacl + "pattern")} "\.[0-9]{0,${nc.totaldigits}}" ;\n`;
+    }
   }
 
   function renderShape (lead, sh) {
@@ -149,7 +190,41 @@ function copyL2R (indent) {
     }
 
     if ('valueExpr' in tc) {
-      renderShapeExpression(lead, tc.valueExpr);
+      // renderShapeExpression(lead, tc.valueExpr);
+      const valueExpr = tc.valueExpr;
+      if (typeof valueExpr === 'string') {
+          shacl.value += `${lead}${iri(Ns_shacl + "node")} ${iri(valueExpr)} ;\n`;
+      } else {
+        switch (valueExpr.type) {
+        case 'Shape':
+          shacl.value += `${lead}${iri(Ns_shacl + "node")} `;
+          renderShape(lead, valueExpr);
+          break;
+        case 'NodeConstraint':
+          renderNodeConstraint(lead, valueExpr);
+          break;
+        case 'ShapeOr':
+        case 'ShapeAnd':
+          const typeIri = valueExpr.type === 'ShapeOr'
+            ? Ns_shacl + "OR"
+            : Ns_shacl + "AND";
+          shacl.value += `${lead}${iri(typeIri)} (\n`;
+          lead = ind(lead);
+          valueExpr.shapeExprs.forEach((junct, ord) => {
+            if (typeof junct === 'string') {
+              shacl.value += `${lead}${iri(junct)}\n`
+            } else {
+              shacl.value += `${lead}[\n`
+              renderShapeExpression(ind(lead), junct);
+              shacl.value += `${lead}]\n`
+            }
+          });
+          lead = out(lead);
+          shacl.value += `${lead}) ;\n`;
+          break;
+        default: shacl.value += `${lead}# unknown ShapeExpression type ${valueExpr.type}\n`
+        }
+      }
     }
 
     lead = out(lead);
