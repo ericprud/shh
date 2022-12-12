@@ -1,4 +1,4 @@
-Ns_shacl = 'http://www.w3.org/ns/shacl#';
+"use strict";
 
 let ismdwn = 0
 rpanrResize.addEventListener('mousedown', mD)
@@ -52,7 +52,7 @@ function copyL2R () {
     end () { }
   }
 
-  shacl.value = ``;
+  shacl.value = '# ShEx-to-SHACL:\n';
   const out = new TextAreaWriter(shacl);
   const url = "" + window.location;
   const shexc = yashe.getValue();
@@ -60,12 +60,11 @@ function copyL2R () {
   const shexj = shexParser.parse(shexc);
   const prefixes = shexj._prefixes;
   const base = shexj._base;
-  prefixes['shacl'] = Ns_shacl;
   new ShExToShacl('  ', out, prefixes, base).convert(shexj);
   return false;
 }
 
-function copyR2L () {
+async function copyR2L () {
   class CodeMirrorWriter {
     constructor (editor) {
       this.editor = editor;
@@ -77,9 +76,30 @@ function copyR2L () {
     end () { }
   }
 
-  // yashe.setValue('');
+  const Ns_rdf = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+  const Ns_shacl = 'http://www.w3.org/ns/shacl#';
+
+  yashe.setValue('# SHACL-to-ShEx:\n');
   const out = new CodeMirrorWriter(yashe);
-  alert("not implemented");
+  const base = "" + window.location;
+  const shaclTurtle = shacl.value;
+  const shaclGraph = new N3.Store();
+  let prefixes = {};
+  await new Promise((resolve, reject) => {
+    new N3.Parser().parse(shaclTurtle, (error, quad, prefixesP) => {
+      if (error) {
+        alert(error);
+        reject(error);
+      } else if (quad) {
+        shaclGraph.addQuad(quad);
+      } else {
+        if (prefixesP)
+          prefixes = prefixesP;
+        resolve();
+      }
+    });
+  });
+  new ShaclToShEx('  ', out, prefixes, base).convert(shaclGraph);
   return false;
 }
 

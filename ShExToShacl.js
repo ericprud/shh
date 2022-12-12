@@ -1,4 +1,6 @@
 class ShExToShacl {
+  static Ns_shacl = 'http://www.w3.org/ns/shacl#';
+
   constructor (indent, out, prefixes, base) {
     this.indentation = indent;
     this.out = out;
@@ -23,14 +25,26 @@ class ShExToShacl {
         }
       });
     } else {
-      this.out.write(`${lead}# no shapes declared in ShExC\n`);
+      this.out.write(`${lead}# no shapes declared in ShEx schema\n`);
     }
     this.out.end();
   }
 
   renderPrefixes (lead, prefixes) {
+    let needsShaclNs = true;
     for (let [prefix, ns] of Object.entries(prefixes)) {
       this.out.write(`${lead}PREFIX ${prefix}: <${ns}>\n`);
+      if (ns === ShExToShacl.Ns_shacl) {
+        needsShapeNs = false;
+      }
+    }
+    if (needsShaclNs) {
+      let prefix = 'shacl';
+      while (prefix in prefixes) {
+        prefix += '_';
+      }
+      prefixes[prefix] = ShExToShacl.Ns_shacl;
+      this.out.write(`${lead}PREFIX ${prefix}: <${ShExToShacl.Ns_shacl}>\n`);
     }
   }
 
@@ -49,9 +63,9 @@ class ShExToShacl {
 
   renderNodeConstraint (lead, nc) {
     if ('nodeKind' in nc)
-      this.out.write(`${lead}${this.iri(Ns_shacl + "nodeKind")} ${this.iri(Ns_shacl + nc.nodeKind.toUpperCase())} ;\n`);
+      this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "nodeKind")} ${this.iri(ShExToShacl.Ns_shacl + nc.nodeKind.toUpperCase())} ;\n`);
     if ('datatype' in nc)
-      this.out.write(`${lead}${this.iri(Ns_shacl + "datatype")} ${this.iri(nc.datatype)} ;\n`);
+      this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "datatype")} ${this.iri(nc.datatype)} ;\n`);
     if ('values' in nc) {
       const values = nc.values.map(v => {
         if (typeof v === 'string') return this.iri(v);
@@ -62,12 +76,12 @@ class ShExToShacl {
               : '';
         return `"${v.value}"${langOrDt}`;
       });
-      this.out.write(`${lead}${this.iri(Ns_shacl + "in")} (${values.join(' ')}) ;\n`);
+      this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "in")} (${values.join(' ')}) ;\n`);
     }
     if ('pattern' in nc) {
-      this.out.write(`${lead}${this.iri(Ns_shacl + "pattern")} "${nc.pattern}" ;\n`);
+      this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "pattern")} "${nc.pattern}" ;\n`);
       if ('flags' in nc) {
-        this.out.write(`${lead}${this.iri(Ns_shacl + "flags")} "${nc.flags}" ;\n`);
+        this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "flags")} "${nc.flags}" ;\n`);
       }
     }
     const x2cl = {
@@ -81,22 +95,22 @@ class ShExToShacl {
     };
     for (let x in x2cl) {
       if (x in nc) {
-        this.out.write(`${lead}${this.iri(Ns_shacl + x2cl[x])} "${nc[x]}" ;\n`);
+        this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + x2cl[x])} "${nc[x]}" ;\n`);
       }
     }
     if ('totaldigits' in nc) {
-      this.out.write(`${lead}${this.iri(Ns_shacl + "pattern")} "[0-9]{0,${nc.totaldigits}}\." ;\n`);
+      this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "pattern")} "[0-9]{0,${nc.totaldigits}}\." ;\n`);
     }
     if ('fractiondigits' in nc) {
-      this.out.write(`${lead}${this.iri(Ns_shacl + "pattern")} "\.[0-9]{0,${nc.totaldigits}}" ;\n`);
+      this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "pattern")} "\.[0-9]{0,${nc.totaldigits}}" ;\n`);
     }
   }
 
   renderShape (lead, sh) {
     lead = this.indent(lead);
-    this.out.write(` a ${this.iri(Ns_shacl + "NodeShape")} ;\n`);
+    this.out.write(` a ${this.iri(ShExToShacl.Ns_shacl + "NodeShape")} ;\n`);
     if (sh.closed) {
-      this.out.write(`${lead}${this.iri(Ns_shacl + "closed")} true;\n`);
+      this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "closed")} true;\n`);
     }
     const valueExpr = sh.expression;
     if (!valueExpr) {
@@ -128,33 +142,33 @@ class ShExToShacl {
   }
 
   renderTripleConstraint (lead, tc) {
-    this.out.write(`${lead}${this.iri(Ns_shacl + "property")} [\n`);
+    this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "property")} [\n`);
     lead = this.indent(lead);
-    this.out.write(`${lead}${this.iri(Ns_shacl + "path")} ${this.iri(tc.predicate)} ;\n`);
+    this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "path")} ${this.iri(tc.predicate)} ;\n`);
 
     if ('min' in tc) {
       if (tc.min !== 0)
-        this.out.write(`${lead}${this.iri(Ns_shacl + "minCount")} ${tc.min} ;\n`);
+        this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "minCount")} ${tc.min} ;\n`);
     } else {
-      this.out.write(`${lead}${this.iri(Ns_shacl + "minCount")} 1 ;\n`);
+      this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "minCount")} 1 ;\n`);
     }
 
     if ('max' in tc) {
       if (tc.max !== -1)
-        this.out.write(`${lead}${this.iri(Ns_shacl + "maxCount")} ${tc.max} ;\n`);
+        this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "maxCount")} ${tc.max} ;\n`);
     } else {
-      this.out.write(`${lead}${this.iri(Ns_shacl + "maxCount")} 1 ;\n`);
+      this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "maxCount")} 1 ;\n`);
     }
 
     if ('valueExpr' in tc) {
-      // renderShapeExpression(lead, tc.valueExpr);
+      // specialize renderShapeExpression(tc.valueExpr) to include shacl:node
       const valueExpr = tc.valueExpr;
       if (typeof valueExpr === 'string') {
-        this.out.write(`${lead}${this.iri(Ns_shacl + "node")} ${this.iri(valueExpr)} ;\n`);
+        this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "node")} ${this.iri(valueExpr)} ;\n`);
       } else {
         switch (valueExpr.type) {
         case 'Shape':
-          this.out.write(`${lead}${this.iri(Ns_shacl + "node")} `);
+          this.out.write(`${lead}${this.iri(ShExToShacl.Ns_shacl + "node")} `);
           this.renderShape(lead, valueExpr);
           break;
         case 'NodeConstraint':
@@ -163,8 +177,8 @@ class ShExToShacl {
         case 'ShapeOr':
         case 'ShapeAnd':
           const typeIri = valueExpr.type === 'ShapeOr'
-            ? Ns_shacl + "OR"
-            : Ns_shacl + "AND";
+            ? ShExToShacl.Ns_shacl + "OR"
+            : ShExToShacl.Ns_shacl + "AND";
           this.out.write(`${lead}${this.iri(typeIri)} (\n`);
           lead = this.indent(lead);
           const _ShExToShacl = this;
