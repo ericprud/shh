@@ -25,6 +25,7 @@ class ShExToShacl {
     } else {
       this.out.write(`${lead}# no shapes declared in ShExC\n`);
     }
+    this.out.end();
   }
 
   renderPrefixes (lead, prefixes) {
