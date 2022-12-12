@@ -143,8 +143,11 @@ function copyL2R (indent) {
   }
 
   function renderShape (lead, sh) {
-    shacl.value += ` a ${iri(Ns_shacl + "NodeShape")} ;\n`;
     lead = ind(lead);
+    shacl.value += ` a ${iri(Ns_shacl + "NodeShape")} ;\n`;
+    if (sh.closed) {
+    shacl.value += `${lead}${iri(Ns_shacl + "closed")} true;\n`;
+    }
     const valueExpr = sh.expression;
     if (!valueExpr) {
       shacl.value += `${lead}# empty shape\n`;
