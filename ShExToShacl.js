@@ -126,7 +126,7 @@ class ShExToShacl {
     case 'TripleConstraint':
       this.renderTripleConstraint(lead, tripleExpr);
       break;
-    case 'EachOf':
+    case 'EachOf': {
       const _ShExToShacl = this;
       tripleExpr.expressions.forEach((conjunct, ord) => {
         if (conjunct.type === 'TripleConstraint') {
@@ -136,6 +136,25 @@ class ShExToShacl {
         }
       });
       break;
+    }
+    case 'OneOf': {
+          const typeIri = ShExToShacl.Ns_shacl + "OR";
+          this.out.write(`${lead}${this.iri(typeIri)} (\n`);
+          lead = this.indent(lead);
+          const _ShExToShacl = this;
+          tripleExpr.expressions.forEach((junct, ord) => {
+            if (typeof junct === 'string') {
+              _ShExToShacl.out.write(`${lead}${_ShExToShacl.iri(junct)}\n`);
+            } else {
+              _ShExToShacl.out.write(`${lead}[\n`);
+              _ShExToShacl.renderTripleExpression(_ShExToShacl.indent(lead), junct);
+              _ShExToShacl.out.write(`${lead}]\n`);
+            }
+          });
+          lead = this.outdent(lead);
+          this.out.write(`${lead}) ;\n`);
+      break;
+    }
     default:
       this.out.write(`${lead}# unknown TripleExpression type: ${tripleExpr.type}\n`);
     }

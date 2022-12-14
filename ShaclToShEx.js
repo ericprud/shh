@@ -47,19 +47,23 @@ class ShaclToShEx {
 
     if (nc.termType === 'NamedNode') {
       this.out.write(`${sep()}@${this.iri(nc.value)}`);
-      return; // !! early return
+      return 1; // !! early return
     }
 
+    let count = 0;
     const nodeKind = this.zeroOrOne(nc, ShaclToShEx.Ns_shacl + "nodeKind");
     if (nodeKind) {
+      ++count;
       this.out.write(`${sep()}${nodeKind.value.substr(ShaclToShEx.Ns_shacl.length).toUpperCase()}`)
     }
     const datatype = this.zeroOrOne(nc, ShaclToShEx.Ns_shacl + "datatype");
     if (datatype) {
+      ++count;
       this.out.write(`${sep()}${this.iri(datatype.value)}`)
     }
     const pattern = this.zeroOrOne(nc, ShaclToShEx.Ns_shacl + "pattern");
     if (pattern) {
+      ++count;
       let match;
       if ((match = pattern.match(/\[0-9\]\{0,([0-9]+)\}\\\./))) {
         this.out.write(`${sep()}TOTALDIGITS ${match[0]}`);
@@ -75,6 +79,7 @@ class ShaclToShEx {
     }
     const inList = this.zeroOrOne(nc, ShaclToShEx.Ns_shacl + "in");
     if (inList) {
+      ++count;
       const values = this.list(inList);
       this.out.write(`${sep()} [`);
       values.forEach(v => {
@@ -103,9 +108,11 @@ class ShaclToShEx {
     for (let x in cl2x) {
       const y = this.zeroOrOne(nc, ShaclToShEx.Ns_shacl + x);
       if (y) {
+        ++count;
         this.out.write(`${sep()}${x2cl[x]} ${y} ;\n`);
       }
     }
+    return count;
   }
 
   renderShape (lead, sh) {
@@ -115,20 +122,34 @@ class ShaclToShEx {
       this.out.write(` CLOSED`);
     }
     this.out.write(` {\n`);
-    const shapes = [... this.graph.match(sh, ShaclToShEx.Ns_shacl + 'property', null, null)];
-    if (shapes.length === 0) {
-      this.out.write(`${lead}# empty shape\n`);
-    } else {
-      const _ShaclToShEx = this;
-      shapes.forEach(te => {
-        _ShaclToShEx.renderTripleConstraint(lead, te.object);
-      })
-    }
+    this.renderShapeContents(lead, sh)
     lead = this.outdent(lead);
     this.out.write(`${lead}}\n`);
   }
 
-  renderTripleConstraint (lead, tc) {
+  renderShapeContents (lead, sh) {
+    const shapes = [... this.graph.match(sh, ShaclToShEx.Ns_shacl + 'property', null, null)];
+    const and = this.zeroOrOne(sh, ShaclToShEx.Ns_shacl + "AND", null);
+    const or = this.zeroOrOne(sh, ShaclToShEx.Ns_shacl + "OR", null);
+    if (shapes.length !== 0) {
+      const _ShaclToShEx = this;
+      shapes.forEach((te, ord) => {
+        _ShaclToShEx.renderTripleConstraint(lead, te.object, ord === shapes.length - 1 ? '' : ' ;');
+      })
+    } else if (and || or) {
+      const juncts = this.list(and || or);
+      const _ShaclToShEx = this;
+      juncts.forEach((junct, ord) => {
+        if (ord > 0)
+          this.out.write(` ${and ? ';' : '|'}`);
+        _ShaclToShEx.renderShapeContents(this.indent(lead), junct);
+      });
+    } else {
+      this.out.write(`${lead}# empty shape\n`);
+    }
+  }
+
+  renderTripleConstraint (lead, tc, terminator) {
     this.out.write(`${lead}${this.iri(this.one(tc, ShaclToShEx.Ns_shacl + "path").value)} `);
     lead = this.indent(lead);
 
@@ -143,9 +164,12 @@ class ShaclToShEx {
     const node = this.zeroOrOne(tc, ShaclToShEx.Ns_shacl + "node", null);
     const and = this.zeroOrOne(tc, ShaclToShEx.Ns_shacl + "AND", null);
     const or = this.zeroOrOne(tc, ShaclToShEx.Ns_shacl + "OR", null);
+    let needsDot = true;
     if (node) {
+      needsDot = false;
       this.renderNodeConstraint(this.indent(lead), node);
     } else if (and || or) {
+      needsDot = false;
       const juncts = this.list(and || or);
       const _ShaclToShEx = this;
       juncts.forEach((junct, ord) => {
@@ -155,9 +179,14 @@ class ShaclToShEx {
       });
     }
 
-    this.renderNodeConstraint(lead, tc);
+    if (this.renderNodeConstraint(lead, tc) > 0)
+      needsDot = false;
 
-    this.out.write(`${cardStr} ;\n`);
+    if (needsDot) {
+      this.out.write(`.`);
+    }
+
+    this.out.write(`${cardStr}${terminator}\n`);
 
     lead = this.outdent(lead);
   }
