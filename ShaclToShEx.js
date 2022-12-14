@@ -1,6 +1,7 @@
 class ShaclToShEx {
   static Ns_shacl = 'http://www.w3.org/ns/shacl#';
   static Ns_rdf = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+  static Ns_xsd = 'http://www.w3.org/2001/XMLSchema#';
 
   constructor (indent, out, prefixes, base) {
     this.indentation = indent;
@@ -51,7 +52,7 @@ class ShaclToShEx {
 
     const nodeKind = this.zeroOrOne(nc, ShaclToShEx.Ns_shacl + "nodeKind");
     if (nodeKind) {
-      this.out.write(`${sep()}${nodeKind.value.substr(ShaclToShEx.Ns_shacl.length)}`)
+      this.out.write(`${sep()}${nodeKind.value.substr(ShaclToShEx.Ns_shacl.length).toUpperCase()}`)
     }
     const datatype = this.zeroOrOne(nc, ShaclToShEx.Ns_shacl + "datatype");
     if (datatype) {
@@ -82,8 +83,8 @@ class ShaclToShEx {
         } else {
           const langOrDt = v.language
                 ? `@${v.language}`
-                : v.datatype
-                ? `^^${this.iri(v.datatype)}`
+                : v.datatype && v.datatype.value !== ShaclToShEx.Ns_xsd + 'string'
+                ? `^^${this.iri(v.datatype.value)}`
                 : '';
           this.out.write(` "${v.value}"${langOrDt}`);
         }
